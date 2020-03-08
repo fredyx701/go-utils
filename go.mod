@@ -1,4 +1,4 @@
-module github/FredyXue/go-utils
+module github.com/FredyXue/go-utils
 
 go 1.13
 
