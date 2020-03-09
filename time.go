@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"log"
 	"regexp"
 	"strconv"
 	"time"
@@ -10,20 +9,17 @@ import (
 
 // TimeFormat 格式化时间
 // opts[0]  format  yyyyMMddHHmmss  默认  yyyy-MM-dd HH:mm:ss
-// opts[1]  时区  默认local
+// opts[1]  timezone  时区  不传表示 local   支持的格式 e.g.  +08:00  -07:00
 func TimeFormat(date time.Time, opts ...string) (string, error) {
 
 	// 默认 local 时区
 	if len(opts) >= 2 {
-		tz, err := convertTimezone(opts[1])
-		log.Println(tz)
+		timezone := opts[1]
+		offset, err := convertTimezoneOffset(timezone)
 		if err != nil {
 			return "", err
 		}
-		if tz != 0 {
-			date = time.Unix(date.Unix()+int64(tz*60), 0)
-		}
-		date = date.UTC()
+		date = date.In(time.FixedZone(timezone, offset))
 	}
 
 	year := zeroPad(date.Year(), 4)
@@ -60,6 +56,15 @@ func TimeFormat(date time.Time, opts ...string) (string, error) {
 	return output, nil
 }
 
+// MustTimeFormat TimeFormat with panic
+func MustTimeFormat(date time.Time, opts ...string) string {
+	formatStr, err := TimeFormat(date, opts...)
+	if err != nil {
+		panic("utils TimeFormat Panic: " + err.Error())
+	}
+	return formatStr
+}
+
 // 填充0
 func zeroPad(num int, length int) string {
 	str := strconv.Itoa(num)
@@ -71,8 +76,8 @@ func zeroPad(num int, length int) string {
 
 // 时区转换
 // tz 'Z', +08:00, -08:00, +HH:MM or -HH:MM
-// 返回 相对于UTC的分钟数
-func convertTimezone(tz string) (int, error) {
+// 返回 相对于UTC的秒数
+func convertTimezoneOffset(tz string) (int, error) {
 	if tz == "Z" {
 		return 0, nil
 	}
@@ -80,12 +85,12 @@ func convertTimezone(tz string) (int, error) {
 	m := reg.FindStringSubmatch(tz)
 	if m != nil {
 		offset := 1
-		if m[0] == "-" {
+		if m[1] == "-" {
 			offset = -1
 		}
-		hour, _ := strconv.Atoi(m[1])
-		minute, _ := strconv.Atoi(m[2])
-		return offset * (hour + minute/60) * 60, nil
+		hour, _ := strconv.Atoi(m[2])
+		minute, _ := strconv.Atoi(m[3])
+		return offset * (hour*60 + minute) * 60, nil
 	}
 	return 0, errors.New("invalid timezone string")
 }
