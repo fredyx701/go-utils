@@ -9,7 +9,7 @@ import (
 
 // TimeFormat 格式化时间
 // opts[0]  format  yyyyMMddHHmmss  默认  yyyy-MM-dd HH:mm:ss
-// opts[1]  timezone  时区  不传表示 local   支持的格式 e.g.  +08:00  -07:00
+// opts[1]  timezone  时区  不传表示 local   支持的格式 e.g.  +08:00, 0800, +08, -07:00, -0700, -07
 func TimeFormat(date time.Time, opts ...string) (string, error) {
 
 	// 默认 local 时区
@@ -81,16 +81,20 @@ func convertTimezoneOffset(tz string) (int, error) {
 	if tz == "Z" {
 		return 0, nil
 	}
-	reg := regexp.MustCompile(`([\+\-\s])(\d\d):?(\d\d)?`)
+	reg := regexp.MustCompile(`([\+\-])?(\d\d):?(\d\d)?`)
 	m := reg.FindStringSubmatch(tz)
-	if m != nil {
-		offset := 1
-		if m[1] == "-" {
-			offset = -1
-		}
-		hour, _ := strconv.Atoi(m[2])
-		minute, _ := strconv.Atoi(m[3])
-		return offset * (hour*60 + minute) * 60, nil
+	if m == nil {
+		return 0, errors.New("invalid timezone string")
 	}
-	return 0, errors.New("invalid timezone string")
+
+	offset := 1
+	if m[1] == "-" {
+		offset = -1
+	}
+	hour, err := strconv.Atoi(m[2])
+	minute := 0
+	if m[3] != "" {
+		minute, err = strconv.Atoi(m[3])
+	}
+	return offset * (hour*60 + minute) * 60, err
 }

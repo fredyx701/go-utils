@@ -24,6 +24,14 @@ func TestTime(t *testing.T) {
 	assert.Equal(t, timeStr2, "2020-02-07 09:34:10")
 
 	timeStr3 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "+07:00")
-	assert.NoError(t, err)
 	assert.Equal(t, timeStr3, "2020-02-07 16:34:10")
+
+	timeStr4 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "-0100")
+	assert.Equal(t, timeStr4, "2020-02-07 08:34:10")
+
+	timeStr5 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "-01")
+	assert.Equal(t, timeStr5, "2020-02-07 08:34:10")
+
+	timeStr6 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "01")
+	assert.Equal(t, timeStr6, "2020-02-07 10:34:10")
 }
