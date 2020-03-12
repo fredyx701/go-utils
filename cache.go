@@ -56,6 +56,7 @@ func (m *Map) check(duration time.Duration) {
 func (m *Map) Build() {
 	m.Lock()
 	maps := m.source.Build()
+	m.cache = make(map[interface{}]interface{})
 	for k, v := range maps {
 		m.cache[k] = v
 	}
@@ -192,6 +193,7 @@ func (s *Set) check(duration time.Duration) {
 func (s *Set) Build() {
 	s.Lock()
 	slice := s.source.Build()
+	s.cache = make(map[interface{}]struct{})
 	for _, v := range slice {
 		s.cache[v] = struct{}{}
 	}
