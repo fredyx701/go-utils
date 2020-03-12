@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FredyXue/go-utils/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,4 +35,38 @@ func TestTime(t *testing.T) {
 
 	timeStr6 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "01")
 	assert.Equal(t, timeStr6, "2020-02-07 10:34:10")
+}
+
+func TestSet(t *testing.T) {
+	sets := NewSet(&mock.SetSource{}, time.Second, time.Second*2)
+
+	assert.Equal(t, true, sets.Has(1))
+	assert.Equal(t, false, sets.Has(10))
+	assert.Equal(t, 5, sets.Size())
+
+	time.Sleep(time.Second * 3)
+	assert.Equal(t, 0, sets.Size())
+
+	assert.Equal(t, true, sets.Has(1))
+	assert.Equal(t, 5, sets.Size())
+}
+
+func TestMap(t *testing.T) {
+	maps := NewMap(&mock.MapSource{}, time.Second, time.Second*2)
+	assert.Equal(t, 1, maps.GetInt("1"))
+	assert.Equal(t, int64(2), maps.GetInt64("2"))
+	assert.Equal(t, "3", maps.GetString("3"))
+	assert.Equal(t, true, maps.GetBool("4"))
+	assert.Equal(t, 5.0, maps.GetFloat64("5"))
+
+	v1, has := maps.Get(10)
+	assert.Equal(t, false, has)
+	assert.Equal(t, nil, v1)
+	assert.Equal(t, 5, maps.Size())
+
+	time.Sleep(time.Second * 3)
+	assert.Equal(t, 0, maps.Size())
+
+	assert.Equal(t, 1, maps.GetInt("1"))
+	assert.Equal(t, 5, maps.Size())
 }
