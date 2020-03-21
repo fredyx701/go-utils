@@ -11,7 +11,13 @@ import (
 
 func TestUtils(t *testing.T) {
 	str1 := RandString(10)
-	log.Println(str1)
+	str2 := CreateRandDigest("test")
+	log.Println(str1, str2)
+
+	hash1 := MD5(nil)
+	hash2 := MD5WithString("test")
+	assert.Equal(t, hash1, "d41d8cd98f00b204e9800998ecf8427e")
+	assert.Equal(t, hash2, "098f6bcd4621d373cade4e832627b4f6")
 }
 
 func TestTime(t *testing.T) {
