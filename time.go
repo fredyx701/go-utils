@@ -98,3 +98,34 @@ func convertTimezoneOffset(tz string) (int, error) {
 	}
 	return offset * (hour*60 + minute) * 60, err
 }
+
+// IncrTimeWithClock 获取增量精确时间
+// clock  (0, 86400]  目标时间点
+// 目标时间小于 clock, 顺延一天
+func IncrTimeWithClock(source time.Time, duration int64, clock int64, loc *time.Location) (clockTime time.Time) {
+
+	if clock == 0 {
+		return time.Unix(source.Unix()+duration, 0)
+	}
+
+	hour := clock / 3600
+	minute := clock % 3600 / 60
+	second := clock % 60
+
+	time2 := time.Unix(source.Unix()+duration, 0).In(loc)
+	year, month, day := time2.Date()
+	time3 := time.Date(year, month, day, int(hour), int(minute), int(second), 0, loc)
+
+	if time3.Before(time2) {
+		clockTime = time3.Add(time.Hour * 24)
+	} else {
+		clockTime = time3
+	}
+	return
+}
+
+// IncrTimeWithClockUTC8 获取增量精确时间  东八区
+func IncrTimeWithClockUTC8(source time.Time, duration int64, clock int64) time.Time {
+	loc := time.FixedZone("UTC+8", 8*60*60)
+	return IncrTimeWithClock(source, duration, clock, loc)
+}

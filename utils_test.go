@@ -20,7 +20,7 @@ func TestUtils(t *testing.T) {
 	assert.Equal(t, hash2, "098f6bcd4621d373cade4e832627b4f6")
 }
 
-func TestTime(t *testing.T) {
+func TestTimeFormat(t *testing.T) {
 	date, _ := time.Parse(time.RFC3339, "2020-02-07T17:34:10+08:00")
 	timeStr1, err := TimeFormat(date, "yyyy-MM-dd HH:mm:ss")
 	assert.NoError(t, err)
@@ -41,6 +41,26 @@ func TestTime(t *testing.T) {
 
 	timeStr6 := MustTimeFormat(date, "yyyy-MM-dd HH:mm:ss", "01")
 	assert.Equal(t, timeStr6, "2020-02-07 10:34:10")
+}
+
+func TestIncrTimeWithClock(t *testing.T) {
+	source, _ := time.Parse(time.RFC3339, "2020-03-01T17:34:10+08:00")
+
+	// after
+	time1 := IncrTimeWithClockUTC8(source, 30*24*3600, 18*3600+10*60+36)
+	time1T, _ := time.Parse(time.RFC3339, "2020-03-31T18:10:36+08:00")
+
+	// before
+	time2 := IncrTimeWithClockUTC8(source, 30*24*3600, 15*3600+21*60+15)
+	time2T, _ := time.Parse(time.RFC3339, "2020-04-01T15:21:15+08:00")
+
+	// clock = 0
+	time3 := IncrTimeWithClockUTC8(source, 30*24*3600, 0)
+	time3T, _ := time.Parse(time.RFC3339, "2020-03-31T17:34:10+08:00")
+
+	assert.Equal(t, time1.Unix(), time1T.Unix())
+	assert.Equal(t, time2.Unix(), time2T.Unix())
+	assert.Equal(t, time3.Unix(), time3T.Unix())
 }
 
 func TestSet(t *testing.T) {
