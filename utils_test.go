@@ -80,6 +80,14 @@ func TestSet(t *testing.T) {
 
 	assert.Equal(t, true, sets.Has(1))
 	assert.Equal(t, 5, sets.Size())
+
+	arr := []interface{}{4, 5, 6, 7, 8}
+	res1 := sets.Intersect(arr)
+	res2 := sets.Union(arr)
+	res3 := sets.Diff(arr)
+	assert.ElementsMatch(t, []interface{}{4, 5}, res1)
+	assert.ElementsMatch(t, []interface{}{1, 2, 3, 4, 5, 6, 7, 8}, res2)
+	assert.ElementsMatch(t, []interface{}{1, 2, 3}, res3)
 }
 
 func TestMap(t *testing.T) {

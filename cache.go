@@ -56,8 +56,9 @@ func (m *Map) check(duration time.Duration) {
 func (m *Map) Build() {
 	m.Lock()
 	maps := m.source.Build()
-	if len(maps) != 0 {
-		m.cache = make(map[interface{}]interface{})
+	length := len(maps)
+	if length != 0 {
+		m.cache = make(map[interface{}]interface{}, length)
 		for k, v := range maps {
 			m.cache[k] = v
 		}
@@ -195,8 +196,9 @@ func (s *Set) check(duration time.Duration) {
 func (s *Set) Build() {
 	s.Lock()
 	slice := s.source.Build()
-	if len(slice) != 0 {
-		s.cache = make(map[interface{}]struct{})
+	length := len(slice)
+	if length != 0 {
+		s.cache = make(map[interface{}]struct{}, length)
 		for _, v := range slice {
 			s.cache[v] = struct{}{}
 		}
@@ -236,4 +238,71 @@ func (s *Set) Delete(key interface{}) {
 	s.Lock()
 	delete(s.cache, key)
 	s.Unlock()
+}
+
+// Intersect 取交集
+func (s *Set) Intersect(arr []interface{}) []interface{} {
+	now := time.Now().Unix()
+	s.RLock()
+	if s.expireTime < now {
+		s.RUnlock()
+		s.Build()
+		s.RLock()
+	}
+	result := make([]interface{}, 0, len(arr))
+	for _, v := range arr {
+		_, has := s.cache[v]
+		if has {
+			result = append(result, v)
+		}
+	}
+	s.RUnlock()
+	return result
+}
+
+// Union 取并集
+func (s *Set) Union(arr []interface{}) []interface{} {
+	now := time.Now().Unix()
+	s.RLock()
+	if s.expireTime < now {
+		s.RUnlock()
+		s.Build()
+		s.RLock()
+	}
+	result := make([]interface{}, 0, len(arr)+len(s.cache))
+	for k := range s.cache {
+		result = append(result, k)
+	}
+	for _, v := range arr {
+		_, has := s.cache[v]
+		if !has {
+			result = append(result, v)
+		}
+	}
+	s.RUnlock()
+	return result
+}
+
+// Diff 取差集
+func (s *Set) Diff(arr []interface{}) []interface{} {
+	now := time.Now().Unix()
+	s.RLock()
+	if s.expireTime < now {
+		s.RUnlock()
+		s.Build()
+		s.RLock()
+	}
+	arrSet := make(map[interface{}]struct{}, len(arr))
+	for _, v := range arr {
+		arrSet[v] = struct{}{}
+	}
+	result := make([]interface{}, 0, len(s.cache))
+	for k := range s.cache {
+		_, has := arrSet[k]
+		if !has {
+			result = append(result, k)
+		}
+	}
+	s.RUnlock()
+	return result
 }
