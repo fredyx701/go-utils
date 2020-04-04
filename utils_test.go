@@ -54,13 +54,18 @@ func TestIncrTimeWithClock(t *testing.T) {
 	time2 := IncrTimeWithClockUTC8(source, 30*24*3600, 15*3600+21*60+15)
 	time2T, _ := time.Parse(time.RFC3339, "2020-04-01T15:21:15+08:00")
 
-	// clock = 0
-	time3 := IncrTimeWithClockUTC8(source, 30*24*3600, 0)
+	// equal
+	time3 := IncrTimeWithClockUTC8(source, 30*24*3600, 17*3600+34*60+10)
 	time3T, _ := time.Parse(time.RFC3339, "2020-03-31T17:34:10+08:00")
+
+	// clock = 0
+	time4 := IncrTimeWithClockUTC8(source, 30*24*3600, 0)
+	time4T, _ := time.Parse(time.RFC3339, "2020-03-31T17:34:10+08:00")
 
 	assert.Equal(t, time1.Unix(), time1T.Unix())
 	assert.Equal(t, time2.Unix(), time2T.Unix())
 	assert.Equal(t, time3.Unix(), time3T.Unix())
+	assert.Equal(t, time4.Unix(), time4T.Unix())
 }
 
 func TestSet(t *testing.T) {
