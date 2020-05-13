@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+// TimeFormatWithLayout 使用 time layout 格式化 时间
+// offset 时区秒偏移  不传表示 local  e.g.  UTC+8 = 3600 * 8
+func TimeFormatWithLayout(date time.Time, layout string, offset ...int) string {
+	if len(offset) > 0 {
+		date = date.In(time.FixedZone("TimeFormatWithLayout", offset[0]))
+	}
+	return date.Format(layout)
+}
+
 // TimeFormat 格式化时间
 // opts[0]  format  yyyyMMddHHmmss  默认  yyyy-MM-dd HH:mm:ss
 // opts[1]  timezone  时区  不传表示 local   支持的格式 e.g.  +08:00, 0800, +08, -07:00, -0700, -07
