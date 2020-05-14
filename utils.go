@@ -19,8 +19,12 @@ func init() {
 }
 
 // RandString 生成指定位数的随机字符串
-func RandString(length int) string {
+// template 自定字符串合集
+func RandString(length int, template ...string) string {
 	str := "0123456789abcdefghijklmnopqrstuvwyxzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	if len(template) > 0 {
+		str = template[0]
+	}
 	strLen := len(str)
 	randStr := make([]byte, length)
 

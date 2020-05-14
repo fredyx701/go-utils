@@ -12,7 +12,8 @@ import (
 func TestUtils(t *testing.T) {
 	str1 := RandString(10)
 	str2 := CreateRandDigest("test")
-	log.Println(str1, str2)
+	str3 := RandString(10, "012345")
+	log.Println(str1, str2, str3)
 
 	hash1 := MD5(nil)
 	hash2 := MD5WithString("test")
