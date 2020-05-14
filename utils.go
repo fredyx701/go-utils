@@ -81,5 +81,6 @@ func HiddenName(name string) string {
 // 86-13912341234  139****1234
 func HiddenPhoneNumber(phone string) string {
 	reg := regexp.MustCompile(`(\d{3})\d{4}(\d{4})`)
+	phone = reg.FindString(phone)
 	return reg.ReplaceAllString(phone, "$1****$2")
 }
