@@ -4,7 +4,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"math/rand"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -47,4 +49,37 @@ func CreateRandDigest(opts ...string) string {
 		str += v
 	}
 	return MD5WithString(str)
+}
+
+// HiddenName 名称脱敏
+// 张三  张*
+// 李二四  李*四
+func HiddenName(name string) string {
+	name = strings.TrimSpace(name)
+	if strings.Contains(name, "·") { //  AAA·BBB
+		names := strings.Split(name, "·")
+		return "***·" + names[len(names)-1]
+	}
+	nameChar := []rune(name)
+	length := len(nameChar)
+	if length <= 1 { // A
+		return name
+	}
+	if length <= 2 { // AA
+		return string([]rune{nameChar[0], '*'})
+	}
+	if length <= 3 { // AAA
+		return string([]rune{nameChar[0], '*', nameChar[2]})
+	}
+	if length <= 6 {
+		return string(nameChar[0:1]) + "**" + string(nameChar[3:])
+	}
+	return string(nameChar[0:2]) + "****" + string(nameChar[6:])
+}
+
+// HiddenPhoneNumber 手机号 脱敏
+// 86-13912341234  139****1234
+func HiddenPhoneNumber(phone string) string {
+	reg := regexp.MustCompile(`(\d{3})\d{4}(\d{4})`)
+	return reg.ReplaceAllString(phone, "$1****$2")
 }

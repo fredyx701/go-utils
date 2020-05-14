@@ -115,3 +115,15 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, 1, maps.GetInt("1"))
 	assert.Equal(t, 5, maps.Size())
 }
+
+func TestHidden(t *testing.T) {
+	assert.Equal(t, HiddenName("蒙奇·D·路飞"), "***·路飞")
+	assert.Equal(t, HiddenName("张三"), "张*")
+	assert.Equal(t, HiddenName("李二四"), "李*四")
+	assert.Equal(t, HiddenName("钱二三四"), "钱**四")
+	assert.Equal(t, HiddenName("王二三四五六"), "王**四五六")
+	assert.Equal(t, HiddenName("赵二三四五六七"), "赵二****七")
+
+	assert.Equal(t, HiddenPhoneNumber("86-13712341234"), "86-137****1234")
+	assert.Equal(t, HiddenPhoneNumber("13712341234"), "137****1234")
+}
