@@ -97,6 +97,19 @@ func TestSet(t *testing.T) {
 	assert.ElementsMatch(t, []interface{}{1, 2, 3}, res3)
 }
 
+func TestList(t *testing.T) {
+	list := NewList(&mock.ListSource{}, time.Second, time.Second*2)
+	slice := list.Copy()
+	assert.EqualValues(t, 0, slice[0])
+	assert.EqualValues(t, 6, len(slice))
+
+	time.Sleep(time.Second * 3)
+	assert.Equal(t, 0, list.Length())
+
+	slice2 := list.Get()
+	assert.EqualValues(t, 1, slice2[1])
+}
+
 func TestMap(t *testing.T) {
 	maps := NewMap(&mock.MapSource{}, time.Second, time.Second*2)
 	assert.Equal(t, 1, maps.GetInt("1"))

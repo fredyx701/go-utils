@@ -17,3 +17,9 @@ func (s *MapSource) Build() map[interface{}]interface{} {
 		"5": 5.0,
 	}
 }
+
+type ListSource struct{}
+
+func (s *ListSource) Build() []interface{} {
+	return []interface{}{0, 1, 2, 3, 4, 5}
+}
