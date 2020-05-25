@@ -82,9 +82,13 @@ func HiddenName(name string) string {
 }
 
 // HiddenPhoneNumber 手机号 脱敏
-// 86-13912341234  139****1234
+// 86-13912341234  86-139****1234
+// 65-96123412     65-96****12
+// 852-94123412    852-94****12
+// 64-02112341234  64-021****1234
+// 1-9291234123    1-929****123
 func HiddenPhoneNumber(phone string) string {
-	reg := regexp.MustCompile(`(\d{3})\d{4}(\d{4})`)
-	phone = reg.FindString(phone)
+	reg := regexp.MustCompile(`(\d{2,3})\d{4}(\d{2,4})`)
+	// phone = reg.FindString(phone)
 	return reg.ReplaceAllString(phone, "$1****$2")
 }

@@ -138,6 +138,14 @@ func TestHidden(t *testing.T) {
 	assert.Equal(t, HiddenName("王二三四五六"), "王**四五六")
 	assert.Equal(t, HiddenName("赵二三四五六七"), "赵二****七")
 
-	assert.Equal(t, HiddenPhoneNumber("86-13712341234"), "137****1234")
+	assert.Equal(t, HiddenPhoneNumber("86-13712341234"), "86-137****1234")
 	assert.Equal(t, HiddenPhoneNumber("13712341234"), "137****1234")
+	assert.Equal(t, HiddenPhoneNumber("65-96123412"), "65-96****12")
+	assert.Equal(t, HiddenPhoneNumber("96123412"), "96****12")
+	assert.Equal(t, HiddenPhoneNumber("852-94123412"), "852-94****12")
+	assert.Equal(t, HiddenPhoneNumber("94123412"), "94****12")
+	assert.Equal(t, HiddenPhoneNumber("64-02112341234"), "64-021****1234")
+	assert.Equal(t, HiddenPhoneNumber("02112341234"), "021****1234")
+	assert.Equal(t, HiddenPhoneNumber("1-9291234123"), "1-929****123")
+	assert.Equal(t, HiddenPhoneNumber("9291234123"), "929****123")
 }
