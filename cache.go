@@ -6,6 +6,7 @@ import (
 )
 
 // MapSource map data source
+// Build() failed return nil, 不会更新数据.  SetSource  ListSource 同
 type MapSource interface {
 	Build() map[interface{}]interface{}
 }
@@ -58,9 +59,11 @@ func (m *Map) check(duration time.Duration) {
 func (m *Map) Build() {
 	m.Lock()
 	maps := m.source.Build()
-	m.cache = make(map[interface{}]interface{}, len(maps))
-	for k, v := range maps {
-		m.cache[k] = v
+	if maps != nil {
+		m.cache = make(map[interface{}]interface{}, len(maps))
+		for k, v := range maps {
+			m.cache[k] = v
+		}
 	}
 	m.expireTime = time.Now().Unix() + m.expire
 	m.Unlock()
@@ -193,9 +196,11 @@ func (s *Set) check(duration time.Duration) {
 func (s *Set) Build() {
 	s.Lock()
 	slice := s.source.Build()
-	s.cache = make(map[interface{}]struct{}, len(slice))
-	for _, v := range slice {
-		s.cache[v] = struct{}{}
+	if slice != nil {
+		s.cache = make(map[interface{}]struct{}, len(slice))
+		for _, v := range slice {
+			s.cache[v] = struct{}{}
+		}
 	}
 	s.expireTime = time.Now().Unix() + s.expire
 	s.Unlock()
@@ -344,8 +349,8 @@ func (s *List) check(duration time.Duration) {
 func (s *List) Build() {
 	s.Lock()
 	slice := s.source.Build()
-	s.cache = make([]interface{}, len(slice))
 	if slice != nil {
+		s.cache = make([]interface{}, len(slice))
 		s.cache = slice
 	}
 	s.expireTime = time.Now().Unix() + s.expire
