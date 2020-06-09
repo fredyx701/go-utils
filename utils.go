@@ -55,6 +55,16 @@ func CreateRandDigest(opts ...string) string {
 	return MD5WithString(str)
 }
 
+// MergeError 合并 error
+func MergeError(errs ...error) error {
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // HiddenName 名称脱敏
 // 张三  张*
 // 李二四  李*四
