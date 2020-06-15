@@ -62,3 +62,20 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, 1, maps.GetInt("1"))
 	assert.Equal(t, 5, maps.Size())
 }
+
+func TestStore(t *testing.T) {
+	store := NewStore(&mock.StoreSource{}, time.Second, time.Second*2)
+	val, _ := store.Get(1)
+	store.Get(2)
+	arr := val.([]interface{})
+	assert.EqualValues(t, 2, arr[1])
+	assert.Equal(t, 2, store.Size())
+
+	time.Sleep(time.Second * 3)
+	assert.Equal(t, 0, store.Size())
+
+	val, _ = store.Get(1)
+	arr = val.([]interface{})
+	assert.EqualValues(t, 2, arr[1])
+	assert.Equal(t, 1, store.Size())
+}

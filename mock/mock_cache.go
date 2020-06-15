@@ -23,3 +23,10 @@ type ListSource struct{}
 func (s *ListSource) Build() []interface{} {
 	return []interface{}{0, 1, 2, 3, 4, 5}
 }
+
+type StoreSource struct{}
+
+func (s *StoreSource) Build(key interface{}, opts ...interface{}) interface{} {
+	i := key.(int)
+	return []interface{}{i, i + 1}
+}
