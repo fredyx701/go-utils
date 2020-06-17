@@ -45,9 +45,9 @@ func NewMap(source MapSource, expire time.Duration, opts ...interface{}) *Map {
 func (m *Map) check(duration time.Duration) {
 	c := time.Tick(duration)
 	for next := range c {
-		if m.expiredAt < next.Unix() {
+		if m.expiredAt <= next.Unix() {
 			m.Lock()
-			if m.expiredAt < next.Unix() {
+			if m.expiredAt <= next.Unix() {
 				m.cache = make(map[interface{}]interface{})
 			}
 			m.Unlock()
@@ -67,20 +67,41 @@ func (m *Map) build() {
 	m.expiredAt = time.Now().Unix() + m.expire
 }
 
-func (m *Map) checkBuild() {
-	now := time.Now().Unix()
-	if m.expiredAt < now {
+// Build .
+// force force build
+func (m *Map) Build(force ...bool) {
+	if len(force) > 0 && force[0] {
 		m.Lock()
-		if m.expiredAt < now { // 二次确认   for  parallel build
+		m.build()
+		m.Unlock()
+		return
+	}
+	now := time.Now().Unix()
+	exp := m.expiredAt
+	if exp <= now {
+		m.Lock()
+		if exp == m.expiredAt { // 二次确认   for  parallel build
 			m.build()
 		}
 		m.Unlock()
+		return
+	}
+	// 预重建
+	preduration := prebuildDuration(m.expire)
+	if exp-now <= preduration { // min 1s
+		go func() {
+			m.Lock()
+			if exp == m.expiredAt {
+				m.build()
+			}
+			m.Unlock()
+		}()
 	}
 }
 
 // Get get value
 func (m *Map) Get(key interface{}) (interface{}, bool) {
-	m.checkBuild()
+	m.Build()
 	m.RLock()
 	val, has := m.cache[key]
 	m.RUnlock()
@@ -134,7 +155,10 @@ func (m *Map) GetString(key interface{}) string {
 
 // Size .
 func (m *Map) Size() int {
-	return len(m.cache)
+	m.RLock()
+	lens := len(m.cache)
+	m.RUnlock()
+	return lens
 }
 
 // Set set value
@@ -188,9 +212,9 @@ func NewSet(source SetSource, expire time.Duration, opts ...interface{}) *Set {
 func (s *Set) check(duration time.Duration) {
 	c := time.Tick(duration)
 	for next := range c {
-		if s.expiredAt < next.Unix() {
+		if s.expiredAt <= next.Unix() {
 			s.Lock()
-			if s.expiredAt < next.Unix() {
+			if s.expiredAt <= next.Unix() {
 				s.cache = make(map[interface{}]struct{})
 			}
 			s.Unlock()
@@ -210,20 +234,39 @@ func (s *Set) build() {
 	s.expiredAt = time.Now().Unix() + s.expire
 }
 
-func (s *Set) checkBuild() {
-	now := time.Now().Unix()
-	if s.expiredAt < now {
+// Build .
+func (s *Set) Build(force ...bool) {
+	if len(force) > 0 && force[0] {
 		s.Lock()
-		if s.expiredAt < now {
+		s.build()
+		s.Unlock()
+		return
+	}
+	now := time.Now().Unix()
+	exp := s.expiredAt
+	if exp <= now {
+		s.Lock()
+		if exp == s.expiredAt {
 			s.build()
 		}
 		s.Unlock()
+		return
+	}
+	preduration := prebuildDuration(s.expire)
+	if exp-now <= preduration {
+		go func() {
+			s.Lock()
+			if exp == s.expiredAt {
+				s.build()
+			}
+			s.Unlock()
+		}()
 	}
 }
 
 // Has .
 func (s *Set) Has(key interface{}) bool {
-	s.checkBuild()
+	s.Build()
 	s.RLock()
 	_, has := s.cache[key]
 	s.RUnlock()
@@ -232,7 +275,10 @@ func (s *Set) Has(key interface{}) bool {
 
 // Size .
 func (s *Set) Size() int {
-	return len(s.cache)
+	s.RLock()
+	lens := len(s.cache)
+	s.RUnlock()
+	return lens
 }
 
 // Add .
@@ -251,7 +297,7 @@ func (s *Set) Delete(key interface{}) {
 
 // Intersect 取交集
 func (s *Set) Intersect(arr []interface{}) []interface{} {
-	s.checkBuild()
+	s.Build()
 	s.RLock()
 	result := make([]interface{}, 0, len(arr))
 	for _, v := range arr {
@@ -266,7 +312,7 @@ func (s *Set) Intersect(arr []interface{}) []interface{} {
 
 // Union 取并集
 func (s *Set) Union(arr []interface{}) []interface{} {
-	s.checkBuild()
+	s.Build()
 	s.RLock()
 	result := make([]interface{}, 0, len(arr)+len(s.cache))
 	for k := range s.cache {
@@ -284,7 +330,7 @@ func (s *Set) Union(arr []interface{}) []interface{} {
 
 // Diff 取差集
 func (s *Set) Diff(arr []interface{}) []interface{} {
-	s.checkBuild()
+	s.Build()
 	s.RLock()
 	arrSet := make(map[interface{}]struct{}, len(arr))
 	for _, v := range arr {
@@ -338,9 +384,9 @@ func NewList(source ListSource, expire time.Duration, opts ...interface{}) *List
 func (s *List) check(duration time.Duration) {
 	c := time.Tick(duration)
 	for next := range c {
-		if s.expiredAt < next.Unix() {
+		if s.expiredAt <= next.Unix() {
 			s.Lock()
-			if s.expiredAt < next.Unix() {
+			if s.expiredAt <= next.Unix() {
 				s.cache = make([]interface{}, 0)
 			}
 			s.Unlock()
@@ -358,26 +404,45 @@ func (s *List) build() {
 	s.expiredAt = time.Now().Unix() + s.expire
 }
 
-func (s *List) checkBuild() {
-	now := time.Now().Unix()
-	if s.expiredAt < now {
+// Build .
+func (s *List) Build(force ...bool) {
+	if len(force) > 0 && force[0] {
 		s.Lock()
-		if s.expiredAt < now {
+		s.build()
+		s.Unlock()
+		return
+	}
+	now := time.Now().Unix()
+	exp := s.expiredAt
+	if exp <= now {
+		s.Lock()
+		if exp == s.expiredAt {
 			s.build()
 		}
 		s.Unlock()
+		return
+	}
+	preduration := prebuildDuration(s.expire)
+	if exp-now <= preduration {
+		go func() {
+			s.Lock()
+			if exp == s.expiredAt {
+				s.build()
+			}
+			s.Unlock()
+		}()
 	}
 }
 
 // Get 获取原 slice
 func (s *List) Get() []interface{} {
-	s.checkBuild()
+	s.Build()
 	return s.cache
 }
 
 // Copy 获取副本
 func (s *List) Copy() []interface{} {
-	s.checkBuild()
+	s.Build()
 	s.RLock()
 	slice := make([]interface{}, len(s.cache))
 	copy(slice, s.cache)
@@ -387,7 +452,10 @@ func (s *List) Copy() []interface{} {
 
 // Length .
 func (s *List) Length() int {
-	return len(s.cache)
+	s.RLock()
+	lens := len(s.cache)
+	s.RUnlock()
+	return lens
 }
 
 // CacheSource map data source
@@ -435,9 +503,9 @@ func (m *Store) check(duration time.Duration) {
 	for next := range c {
 		now := next.Unix()
 		for k, v := range m.cache {
-			if v.expiredAt < now {
+			if v.expiredAt <= now {
 				m.Lock()
-				if v.expiredAt < now {
+				if v.expiredAt <= now {
 					delete(m.cache, k)
 				}
 				m.Unlock()
@@ -455,7 +523,8 @@ func (m *Store) build(val *storeEelment, key interface{}, opts ...interface{}) {
 	val.expiredAt = time.Now().Unix() + m.expire // 延续之前的值 or 保留 nil 值
 }
 
-func (m *Store) checkBuild(key interface{}, opts ...interface{}) {
+// Build .
+func (m *Store) Build(force bool, key interface{}, opts ...interface{}) {
 	// check exist
 	val, has := m.cache[key]
 	if !has {
@@ -470,20 +539,41 @@ func (m *Store) checkBuild(key interface{}, opts ...interface{}) {
 		}
 		m.Unlock()
 	}
+
+	// force build
+	if force {
+		val.Lock()
+		m.build(val, key, opts...)
+		val.Unlock()
+		return
+	}
+
 	// check expireAt
 	now := time.Now().Unix()
-	if val.expiredAt < now {
+	exp := val.expiredAt
+	if exp <= now {
 		val.Lock()
-		if val.expiredAt < now { // check value
+		if exp == val.expiredAt { // check value
 			m.build(val, key, opts...)
 		}
 		val.Unlock()
+		return
+	}
+	preduration := prebuildDuration(m.expire)
+	if exp-now <= preduration {
+		go func() {
+			val.Lock()
+			if exp == val.expiredAt {
+				m.build(val, key, opts...)
+			}
+			val.Unlock()
+		}()
 	}
 }
 
 // Get get value
 func (m *Store) Get(key interface{}, opts ...interface{}) (interface{}, bool) {
-	m.checkBuild(key, opts...)
+	m.Build(false, key, opts...)
 	m.RLock()
 	val, has := m.cache[key]
 	m.RUnlock()
@@ -495,5 +585,18 @@ func (m *Store) Get(key interface{}, opts ...interface{}) (interface{}, bool) {
 
 // Size .
 func (m *Store) Size() int {
-	return len(m.cache)
+	m.RLock()
+	lens := len(m.cache)
+	m.RUnlock()
+	return lens
+}
+
+// 预重建 时间
+// 默认 10分之一， 最少 1s
+func prebuildDuration(expire int64) int64 {
+	duration := expire / 10
+	if duration < 1 {
+		duration = 1
+	}
+	return duration
 }
