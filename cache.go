@@ -458,9 +458,9 @@ func (s *List) Length() int {
 	return lens
 }
 
-// CacheSource map data source
+// StoreSource map data source
 // Build() failed return nil, 不会更新数据.  SetSource  ListSource 同
-type CacheSource interface {
+type StoreSource interface {
 	Build(key interface{}, opts ...interface{}) interface{}
 }
 
@@ -469,7 +469,7 @@ type Store struct {
 	sync.RWMutex
 	cache  map[interface{}]*storeEelment
 	expire int64
-	source CacheSource
+	source StoreSource
 }
 
 type storeEelment struct {
@@ -479,7 +479,7 @@ type storeEelment struct {
 }
 
 // NewStore 创建 kv 缓存
-func NewStore(source CacheSource, expire time.Duration, opts ...interface{}) *Store {
+func NewStore(source StoreSource, expire time.Duration, opts ...interface{}) *Store {
 	obj := &Store{
 		expire: int64(expire.Seconds()),
 		source: source,
