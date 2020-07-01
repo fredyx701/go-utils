@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"log"
 	"math/rand"
 	"regexp"
 	"strconv"
@@ -63,6 +64,16 @@ func MergeError(errs ...error) error {
 		}
 	}
 	return nil
+}
+
+// Protect panic protect
+func Protect(g func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[Panic] catch panic: %v", r)
+		}
+	}()
+	g()
 }
 
 // HiddenName 名称脱敏
