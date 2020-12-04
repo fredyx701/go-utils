@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUtils(t *testing.T) {
+func TestStrings(t *testing.T) {
 	str1 := RandString(10)
 	str2 := CreateRandDigest("test")
 	str3 := RandString(10, "012345")
@@ -18,6 +18,28 @@ func TestUtils(t *testing.T) {
 	hash2 := MD5WithString("test")
 	assert.Equal(t, hash1, "d41d8cd98f00b204e9800998ecf8427e")
 	assert.Equal(t, hash2, "098f6bcd4621d373cade4e832627b4f6")
+}
+
+func TestSlice(t *testing.T) {
+	// UniqueArraySubSequences
+	arr1 := []interface{}{6, 8, 7, 10, 9, 11, 13, 14, 12, 15, 1, 2, 3, 4, 5, 0}
+	arr2 := []interface{}{9, 0, 1, 2, 3, 4, 5, 15, 6, 8, 7, 10, 11, 13, 14, 12}
+	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{6, 8, 7, 10}, {11, 13, 14, 12}, {1, 2, 3, 4, 5}})
+
+	arr1 = []interface{}{6, 8, 7, 10, 9, 11, 13, 14, 12, 15, 1, 2, 3, 4, 5, 0}
+	arr2 = []interface{}{9, 0, 1, 2, 3, 4, 5, 15, 11, 13, 14, 12}
+	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{11, 13, 14, 12}, {1, 2, 3, 4, 5}})
+
+	arr1 = []interface{}{9, 11, 13, 14, 12, 15, 1, 2, 3, 4, 5, 0}
+	arr2 = []interface{}{9, 0, 1, 2, 3, 4, 5, 15, 6, 8, 7, 10, 11, 13, 14, 12}
+	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{11, 13, 14, 12}, {1, 2, 3, 4, 5}})
+
+	// set
+	set := NewSet([]interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 0, 1})
+	arr := []interface{}{1, 2, 3, 11, 12, 13}
+	assert.ElementsMatch(t, set.Intersect(arr), []interface{}{1, 2, 3})
+	assert.ElementsMatch(t, set.Union(arr), []interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 11, 12, 13})
+	assert.ElementsMatch(t, set.Diff(arr), []interface{}{6, 8, 7, 4, 5, 0})
 }
 
 func TestHidden(t *testing.T) {
