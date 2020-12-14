@@ -81,14 +81,44 @@ func (s Set) Union(arr []interface{}) []interface{} {
 }
 
 // Diff 差集
-// 对象自身作为数据源
-func (s Set) Diff(arr []interface{}) []interface{} {
-	arrSet := NewSet(arr)
-	result := make([]interface{}, 0, len(s))
-	for k := range s {
-		if _, has := arrSet[k]; !has {
-			result = append(result, k)
+// default return source - target
+// isMinuend optional parameters. true return target - source
+func (s Set) Diff(target []interface{}, isMinuend ...bool) (diff []interface{}) {
+	arrSet := NewSet(target)
+	if len(isMinuend) > 0 && isMinuend[0] {
+		diff = make([]interface{}, 0, len(arrSet)/2)
+		for k := range arrSet {
+			if _, has := s[k]; !has {
+				diff = append(diff, k)
+			}
+		}
+	} else {
+		diff = make([]interface{}, 0, len(s)/2)
+		for k := range s {
+			if _, has := arrSet[k]; !has {
+				diff = append(diff, k)
+			}
 		}
 	}
-	return result
+	return diff
+}
+
+// DiffBoth .
+// subtrahend  source - target
+// minuend  target - source
+func (s Set) DiffBoth(target []interface{}) (subtrahend []interface{}, minuend []interface{}) {
+	arrSet := NewSet(target)
+	subtrahend = make([]interface{}, 0, len(s)/2)
+	for k := range s {
+		if _, has := arrSet[k]; !has {
+			subtrahend = append(subtrahend, k)
+		}
+	}
+	minuend = make([]interface{}, 0, len(arrSet)/2)
+	for k := range arrSet {
+		if _, has := s[k]; !has {
+			minuend = append(minuend, k)
+		}
+	}
+	return subtrahend, minuend
 }

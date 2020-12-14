@@ -40,6 +40,10 @@ func TestSlice(t *testing.T) {
 	assert.ElementsMatch(t, set.Intersect(arr), []interface{}{1, 2, 3})
 	assert.ElementsMatch(t, set.Union(arr), []interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 11, 12, 13})
 	assert.ElementsMatch(t, set.Diff(arr), []interface{}{6, 8, 7, 4, 5, 0})
+	assert.ElementsMatch(t, set.Diff(arr, true), []interface{}{11, 12, 13})
+	subtrahend, minuend := set.DiffBoth(arr)
+	assert.ElementsMatch(t, subtrahend, []interface{}{6, 8, 7, 4, 5, 0})
+	assert.ElementsMatch(t, minuend, []interface{}{11, 12, 13})
 }
 
 func TestHidden(t *testing.T) {
