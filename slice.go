@@ -1,5 +1,7 @@
 package utils
 
+import "reflect"
+
 // SearchArray .
 // not found return -1
 func SearchArray(arr []interface{}, target interface{}) (index int) {
@@ -41,6 +43,23 @@ func GetUniqueArraySubSequences(arr1, arr2 []interface{}) (result [][]interface{
 	}
 
 	return result
+}
+
+// SliceValueToInterface   []T -> []interface{}
+func SliceValueToInterface(arr interface{}) (slice []interface{}) {
+	slice = []interface{}{}
+	val := reflect.ValueOf(arr)
+	if val.Kind() != reflect.Slice {
+		return
+	}
+	if val.Len() == 0 {
+		return
+	}
+	slice = make([]interface{}, 0, val.Len())
+	for i := 0; i < val.Len(); i++ {
+		slice = append(slice, val.Index(i).Interface())
+	}
+	return slice
 }
 
 // Set .

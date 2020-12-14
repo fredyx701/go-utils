@@ -44,6 +44,10 @@ func TestSlice(t *testing.T) {
 	subtrahend, minuend := set.DiffBoth(arr)
 	assert.ElementsMatch(t, subtrahend, []interface{}{6, 8, 7, 4, 5, 0})
 	assert.ElementsMatch(t, minuend, []interface{}{11, 12, 13})
+
+	// convert
+	arr3 := []int{1, 2, 3}
+	assert.Equal(t, SliceValueToInterface(arr3), []interface{}{1, 2, 3})
 }
 
 func TestHidden(t *testing.T) {
