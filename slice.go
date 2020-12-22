@@ -74,6 +74,16 @@ func NewSet(arr []interface{}) Set {
 	return set
 }
 
+// Subset 判断子集
+func (s Set) Subset(arr []interface{}) bool {
+	for _, v := range arr {
+		if _, has := s[v]; !has {
+			return false
+		}
+	}
+	return true
+}
+
 // Intersect 取交集
 func (s Set) Intersect(arr []interface{}) []interface{} {
 	result := make([]interface{}, 0, len(arr))
