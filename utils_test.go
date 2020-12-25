@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,6 +76,8 @@ func TestProtect(t *testing.T) {
 	go Protect(func() {
 		log.Panic("test panic in protect goroutine")
 	})
+
+	log.Println(MergeError(errors.New("one"), errors.New("two"), errors.New("three")))
 
 	time.Sleep(time.Second)
 	log.Println("protect end")
