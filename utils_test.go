@@ -21,6 +21,11 @@ func TestStrings(t *testing.T) {
 	assert.Equal(t, hash2, "098f6bcd4621d373cade4e832627b4f6")
 }
 
+func TestNumber(t *testing.T) {
+	assert.Equal(t, []int{1, 1, 2, 3, 5, 8, 13, 21}, []int{Fibonacci(0), Fibonacci(1), Fibonacci(2),
+		Fibonacci(3), Fibonacci(4), Fibonacci(5), Fibonacci(6), Fibonacci(7)})
+}
+
 func TestSlice(t *testing.T) {
 	// UniqueArraySubSequences
 	arr1 := []interface{}{6, 8, 7, 10, 9, 11, 13, 14, 12, 15, 1, 2, 3, 4, 5, 0}
