@@ -53,8 +53,8 @@ func NewRetry(opts ...Option) *Retry {
 	r := &Retry{
 		retries:  3,
 		check:    defaultCheckFunc,
-		backoff:  FibonacciBackoff,       // 默认斐波那契数列间隔
-		interval: time.Millisecond * 100, // 默认 100ms 间隔
+		backoff:  FibonacciBackoff,      // 默认斐波那契数列间隔
+		interval: time.Millisecond * 10, // 默认 10ms 间隔
 	}
 	for _, o := range opts {
 		o(r)
