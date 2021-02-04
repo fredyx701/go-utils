@@ -9,32 +9,32 @@ import (
 // Option .
 type Option func(*Retry)
 
-// Backoff is used to set the backoff function used when retrying Calls
+// WithBackoff is used to set the backoff function used when retrying Calls
 // interval  base time interval
-func Backoff(fn BackoffFunc, interval time.Duration) Option {
+func WithBackoff(fn BackoffFunc, interval time.Duration) Option {
 	return func(o *Retry) {
 		o.backoff = fn
 		o.interval = interval
 	}
 }
 
-// Retries Number of retries when making the request.
+// WithRetry Number of retries when making the request.
 // Should this be a Call Option?
-func Retries(i int) Option {
+func WithRetry(i int) Option {
 	return func(o *Retry) {
 		o.retries = i
 	}
 }
 
-// Check sets the retry function to be used when re-trying.
-func Check(fn CheckFunc) Option {
+// WithCheck sets the retry function to be used when re-trying.
+func WithCheck(fn CheckFunc) Option {
 	return func(o *Retry) {
 		o.check = fn
 	}
 }
 
-// Interval  base time interval  与  Backoff 中的 interval 冲突
-func Interval(interval time.Duration) Option {
+// WithInterval  base time interval  与  Backoff 中的 interval 冲突
+func WithInterval(interval time.Duration) Option {
 	return func(o *Retry) {
 		o.interval = interval
 	}

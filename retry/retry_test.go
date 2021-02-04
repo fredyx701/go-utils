@@ -13,8 +13,8 @@ func TestRetry(t *testing.T) {
 
 	// fibonacci
 	NewRetry(
-		Retries(5),
-		Interval(time.Millisecond*10),
+		WithRetry(5),
+		WithInterval(time.Millisecond*10),
 	).Do(func() error {
 		now2 := time.Now()
 		log.Printf("fibonacci ms %v", (now2.UnixNano()-now.UnixNano())/1e6)
@@ -26,7 +26,7 @@ func TestRetry(t *testing.T) {
 
 	// exponent
 	NewRetry(
-		Backoff(ExponentialBackoff, time.Millisecond),
+		WithBackoff(ExponentialBackoff, time.Millisecond),
 	).Do(func() error {
 		log.Printf("exponent ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
 		return errors.New("testerror")
@@ -36,7 +36,7 @@ func TestRetry(t *testing.T) {
 
 	// average
 	NewRetry(
-		Backoff(AverageBackOff, time.Millisecond*10),
+		WithBackoff(AverageBackOff, time.Millisecond*10),
 	).Do(func() error {
 		now2 := time.Now()
 		log.Printf("average ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
@@ -46,7 +46,7 @@ func TestRetry(t *testing.T) {
 
 	// increase
 	err := NewRetry(
-		Backoff(IncreaseBackOff, time.Millisecond*10),
+		WithBackoff(IncreaseBackOff, time.Millisecond*10),
 	).Do(func() error {
 		now2 := time.Now()
 		log.Printf("increase ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
@@ -63,8 +63,8 @@ func TestRetry(t *testing.T) {
 		return true, nil
 	}
 	NewRetry(
-		Check(check),
-		Backoff(AverageBackOff, time.Millisecond*10),
+		WithCheck(check),
+		WithBackoff(AverageBackOff, time.Millisecond*10),
 	).Do(func() error {
 		now2 := time.Now()
 		log.Printf("check ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
