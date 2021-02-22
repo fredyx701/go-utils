@@ -6,12 +6,38 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Options .
-type Options struct {
-	Retries  int           // Number of retries when making the request.
-	Check    CheckFunc     // set retry function to be used when re-trying.
-	BackOff  BackoffFunc   // set the backoff function used when retrying Calls
-	Interval time.Duration // base time interval
+// Option .
+type Option func(*Retry)
+
+// WithBackoff is used to set the backoff function used when retrying Calls
+// interval  base time interval
+func WithBackoff(fn BackoffFunc, interval time.Duration) Option {
+	return func(o *Retry) {
+		o.backoff = fn
+		o.interval = interval
+	}
+}
+
+// WithRetry Number of retries when making the request.
+// Should this be a Call Option?
+func WithRetry(i int) Option {
+	return func(o *Retry) {
+		o.retries = i
+	}
+}
+
+// WithCheck sets the retry function to be used when re-trying.
+func WithCheck(fn CheckFunc) Option {
+	return func(o *Retry) {
+		o.check = fn
+	}
+}
+
+// WithInterval  base time interval  与  Backoff 中的 interval 冲突
+func WithInterval(interval time.Duration) Option {
+	return func(o *Retry) {
+		o.interval = interval
+	}
 }
 
 // Retry .
@@ -23,27 +49,15 @@ type Retry struct {
 }
 
 // NewRetry .
-func NewRetry(opts ...Options) *Retry {
+func NewRetry(opts ...Option) *Retry {
 	r := &Retry{
 		retries:  3,
 		check:    defaultCheckFunc,
 		backoff:  FibonacciBackoff,      // 默认斐波那契数列间隔
 		interval: time.Millisecond * 10, // 默认 10ms 间隔
 	}
-	if len(opts) > 0 {
-		o := opts[0]
-		if o.Retries > 0 {
-			r.retries = o.Retries
-		}
-		if o.Check != nil {
-			r.check = o.Check
-		}
-		if o.BackOff != nil {
-			r.backoff = o.BackOff
-		}
-		if o.Interval > 0 {
-			r.interval = o.Interval
-		}
+	for _, o := range opts {
+		o(r)
 	}
 	return r
 }
