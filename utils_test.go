@@ -40,6 +40,12 @@ func TestSlice(t *testing.T) {
 	arr2 = []interface{}{9, 0, 1, 2, 3, 4, 5, 15, 6, 8, 7, 10, 11, 13, 14, 12}
 	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{11, 13, 14, 12}, {1, 2, 3, 4, 5}})
 
+	// convert
+	arr3 := []int{1, 2, 3}
+	assert.Equal(t, SliceValueToInterface(arr3), []interface{}{1, 2, 3})
+}
+
+func TestSet(t *testing.T) {
 	// set
 	set := NewSet([]interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 0, 1})
 	arr := []interface{}{1, 2, 3, 11, 12, 13}
@@ -52,9 +58,38 @@ func TestSlice(t *testing.T) {
 	assert.ElementsMatch(t, subtrahend, []interface{}{6, 8, 7, 4, 5, 0})
 	assert.ElementsMatch(t, minuend, []interface{}{11, 12, 13})
 
-	// convert
-	arr3 := []int{1, 2, 3}
-	assert.Equal(t, SliceValueToInterface(arr3), []interface{}{1, 2, 3})
+	set = make(Set)
+	set.Add(1, 2, 3)
+	assert.ElementsMatch(t, set.List(), []interface{}{1, 2, 3})
+	assert.Equal(t, set.Has(2), true)
+	assert.Equal(t, set.Has(4), false)
+	set.Delete(1, 2)
+	assert.ElementsMatch(t, set.List(), []interface{}{3})
+	assert.Equal(t, set.AddNX(2), true)
+	assert.Equal(t, set.AddNX(2), false)
+
+	// safe set
+	safe := NewSafeSet([]interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 0, 1})
+	arrsafe := []interface{}{1, 2, 3, 11, 12, 13}
+	assert.Equal(t, safe.Subset([]interface{}{1, 2, 3}), true)
+	assert.ElementsMatch(t, safe.Intersect(arrsafe), []interface{}{1, 2, 3})
+	assert.ElementsMatch(t, safe.Union(arrsafe), []interface{}{6, 8, 7, 1, 2, 3, 4, 5, 0, 11, 12, 13})
+	assert.ElementsMatch(t, safe.Diff(arrsafe), []interface{}{6, 8, 7, 4, 5, 0})
+	assert.ElementsMatch(t, safe.Diff(arrsafe, true), []interface{}{11, 12, 13})
+	subtrahend2, minuend2 := safe.DiffBoth(arrsafe)
+	assert.ElementsMatch(t, subtrahend2, []interface{}{6, 8, 7, 4, 5, 0})
+	assert.ElementsMatch(t, minuend2, []interface{}{11, 12, 13})
+
+	safe.Clear()
+	safe.Add(1, 2, 3)
+	assert.ElementsMatch(t, safe.List(), []interface{}{1, 2, 3})
+	assert.Equal(t, safe.Has(2), true)
+	assert.Equal(t, safe.Has(4), false)
+	safe.Delete(1, 2)
+	assert.ElementsMatch(t, safe.List(), []interface{}{3})
+	assert.Equal(t, safe.AddNX(2), true)
+	assert.Equal(t, safe.AddNX(2), false)
+	assert.Equal(t, safe.Len(), 2)
 }
 
 func TestHidden(t *testing.T) {
