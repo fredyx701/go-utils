@@ -40,6 +40,11 @@ func TestSlice(t *testing.T) {
 	arr2 = []interface{}{9, 0, 1, 2, 3, 4, 5, 15, 6, 8, 7, 10, 11, 13, 14, 12}
 	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{11, 13, 14, 12}, {1, 2, 3, 4, 5}})
 
+	arr1 = []interface{}{9, 11, 14, 12, 15, 1, 2, 3}
+	arr2 = []interface{}{0, 11, 14, 12, 7, 14, 12, 15, 1, 2, 3}
+	assert.Equal(t, GetUniqueArraySubSequences(arr1, arr2), [][]interface{}{{11, 14, 12}, {15, 1, 2, 3}})
+	assert.Equal(t, GetLongestSubSequence(arr1, arr2), []interface{}{14, 12, 15, 1, 2, 3}) // 修正上面的方法
+
 	// convert
 	arr3 := []int{1, 2, 3}
 	assert.Equal(t, SliceValueToInterface(arr3), []interface{}{1, 2, 3})
