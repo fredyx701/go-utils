@@ -16,6 +16,10 @@ func SearchArray(arr []interface{}, target interface{}) (index int) {
 	return
 }
 
+func Contains(arr []interface{}, target interface{}) bool {
+	return SearchArray(arr, target) != -1
+}
+
 // GetUniqueArraySubSequences 获取两个unique的数组之间的 所有同序子组 (length >= 2)
 // 时间复杂度 O(n^2)
 // 问题：无法匹配出有重合部分的子组
