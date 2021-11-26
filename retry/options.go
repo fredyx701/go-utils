@@ -8,10 +8,19 @@ import (
 )
 
 // CheckFunc note that returning either false or a non-nil error will result in the call not being retried
-type CheckFunc func(retryCount int, err error) (bool, error)
+type CheckFunc func(retryCount int, err error) (retry bool, cerr error)
 
 // defaultCheckFunc .
-func defaultCheckFunc(retryCount int, err error) (bool, error) {
+func defaultCheckFunc(retryCount int, err error) (retry bool, cerr error) {
+	return true, nil
+}
+
+// defaultPollingCheckFunc .
+func defaultPollingCheckFunc(retryCount int, err error) (retry bool, cerr error) {
+	// 报错直接终止任务
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

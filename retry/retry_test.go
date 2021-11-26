@@ -5,10 +5,11 @@ import (
 	"log"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRetry(t *testing.T) {
-
 	now := time.Now()
 
 	// fibonacci
@@ -71,5 +72,69 @@ func TestRetry(t *testing.T) {
 		now = now2
 		return errors.New("testerror")
 	})
+}
+
+func TestRetryCheck(t *testing.T) {
+	// success
+	count := 0
+	success, err := NewPollingRetry(
+		WithRetry(10),
+		WithInterval(time.Millisecond*10),
+	).Polling(func() (bool, error) {
+		count++
+		if count == 3 {
+			return true, nil
+		}
+		return false, nil
+	})
+	assert.Equal(t, success, true)
+	assert.NoError(t, err)
+
+	// timeout
+	count = 0
+	success, err = NewPollingRetry(
+		WithRetry(10),
+		WithInterval(time.Millisecond*10),
+	).Polling(func() (bool, error) {
+		count++
+		return false, nil
+	})
+	assert.Equal(t, success, false)
+	assert.Equal(t, count, 11)
+	assert.Equal(t, err != nil, true)
+	log.Println("get timeout error: ", err)
+
+	// failed
+	count = 0
+	success, err = NewPollingRetry(
+		WithRetry(10),
+		WithInterval(time.Millisecond*10),
+	).Polling(func() (bool, error) {
+		count++
+		return false, errors.New("testerror")
+	})
+	assert.Equal(t, success, false)
+	assert.Equal(t, count, 1) // 直接失败
+	assert.Equal(t, err != nil, true)
+
+	// check
+	count = 0
+	check := func(retryCount int, err error) (bool, error) {
+		if retryCount == 2 {
+			return false, nil
+		}
+		return true, nil
+	}
+	success, err = NewPollingRetry(
+		WithCheck(check),
+		WithRetry(10),
+		WithInterval(time.Millisecond*10),
+	).Polling(func() (bool, error) {
+		count++
+		return false, errors.New("testerror")
+	})
+	assert.Equal(t, success, false)
+	assert.Equal(t, count, 3) // 执行 3 次
+	assert.Equal(t, err != nil, true)
 
 }

@@ -126,4 +126,11 @@ func TestProtect(t *testing.T) {
 
 	time.Sleep(time.Second)
 	log.Println("protect end")
+
+	go func() {
+		panicErr := ProtectV2(func() {
+			log.Panic("test panic in protect goroutine v2")
+		})
+		log.Println("protect v2 errors:", panicErr)
+	}()
 }
