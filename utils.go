@@ -31,3 +31,16 @@ func Protect(g func()) {
 	}()
 	g()
 }
+
+// Protect panic protect
+// return panic error
+func ProtectV2(g func()) (panicErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			panicErr = errors.Errorf("[Panic] catch panic: %v\n%s", r, debug.Stack())
+			return
+		}
+	}()
+	g()
+	return
+}
