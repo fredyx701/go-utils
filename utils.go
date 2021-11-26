@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 )
@@ -25,7 +26,7 @@ func MergeError(errs ...error) error {
 func Protect(g func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[Panic] catch panic: %v", r)
+			log.Printf("[Panic] catch panic: %v\n%s", r, debug.Stack())
 		}
 	}()
 	g()
