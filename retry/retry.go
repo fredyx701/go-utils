@@ -40,12 +40,24 @@ func WithInterval(interval time.Duration) Option {
 	}
 }
 
+// WithDelay 是否延迟执行
+func WithDelay(delay bool) Option {
+	return func(o *Retry) {
+		if delay {
+			o.delay = 1
+		} else {
+			o.delay = 0
+		}
+	}
+}
+
 // Retry .
 type Retry struct {
-	retries  int
+	retries  int // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
 	check    CheckFunc
 	backoff  BackoffFunc
 	interval time.Duration
+	delay    int // 是否延迟执行;  0 立即执行  1 一个周期后执行.   默认立即执行
 }
 
 // NewRetry .
@@ -55,6 +67,7 @@ func NewRetry(opts ...Option) *Retry {
 		check:    defaultCheckFunc,
 		backoff:  FibonacciBackoff,      // 默认斐波那契数列间隔
 		interval: time.Millisecond * 10, // 默认 10ms 间隔
+		delay:    0,
 	}
 	for _, o := range opts {
 		o(r)
@@ -67,7 +80,7 @@ func (r *Retry) Do(fn func() error) error {
 	var gerr error
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
-		t, berr := r.backoff(i, r.interval)
+		t, berr := r.backoff(i+r.delay, r.interval)
 		if berr != nil {
 			return errors.Wrap(berr, "retry backoff error")
 		}
@@ -110,6 +123,7 @@ func NewPollingRetry(opts ...Option) *Retry {
 		check:    defaultPollingCheckFunc,
 		backoff:  AverageBackOff,   // 平均间隔
 		interval: time.Second * 10, // 默认 10 s 间隔
+		delay:    0,
 	}
 	for _, o := range opts {
 		o(r)
@@ -122,7 +136,7 @@ func (r *Retry) Polling(fn func() (bool, error)) (bool, error) {
 	var gerr error
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
-		t, berr := r.backoff(i, r.interval)
+		t, berr := r.backoff(i+r.delay, r.interval)
 		if berr != nil {
 			return false, errors.Wrap(berr, "retry backoff error")
 		}

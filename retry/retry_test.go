@@ -137,4 +137,34 @@ func TestRetryCheck(t *testing.T) {
 	assert.Equal(t, count, 3) // 执行 3 次
 	assert.Equal(t, err != nil, true)
 
+	// delay
+	count = 0
+	backoff := func(attempt int, interval time.Duration) (time.Duration, error) {
+		count += attempt
+		if attempt == 0 {
+			return time.Duration(0), nil
+		}
+		return interval, nil
+	}
+	_, err = NewPollingRetry(
+		WithBackoff(backoff, time.Millisecond*10),
+		WithRetry(3), // 默认立即执行
+	).Polling(func() (bool, error) {
+		return false, nil
+	})
+	assert.Equal(t, success, false)
+	assert.Equal(t, count, 6) // index 从 0 开始, 0+1+2+3 = 6
+	assert.Equal(t, err != nil, true)
+
+	count = 0
+	_, err = NewPollingRetry(
+		WithBackoff(backoff, time.Millisecond*10),
+		WithRetry(3),
+		WithDelay(true), // 一个周期后执行
+	).Polling(func() (bool, error) {
+		return false, nil
+	})
+	assert.Equal(t, success, false)
+	assert.Equal(t, count, 10) // index 从 1 开始, 1+2+3+4 = 10
+	assert.Equal(t, err != nil, true)
 }
