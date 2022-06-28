@@ -15,15 +15,6 @@ func defaultCheckFunc(retryCount int, err error) (retry bool, cerr error) {
 	return true, nil
 }
 
-// defaultPollingCheckFunc .
-func defaultPollingCheckFunc(retryCount int, err error) (retry bool, cerr error) {
-	// 报错直接终止任务
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 // BackoffFunc backoff function
 // attempt start with 0
 type BackoffFunc func(attempt int, interval time.Duration) (time.Duration, error)

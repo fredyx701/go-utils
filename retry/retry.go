@@ -3,46 +3,45 @@ package retry
 import (
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
 // Option .
-type Option func(*Retry)
+type Option func(*retry)
 
 // WithBackoff is used to set the backoff function used when retrying Calls
-// interval  base time interval
-func WithBackoff(fn BackoffFunc, interval time.Duration) Option {
-	return func(o *Retry) {
+func WithBackoff(fn BackoffFunc) Option {
+	return func(o *retry) {
 		o.backoff = fn
-		o.interval = interval
 	}
 }
 
 // WithRetry Number of retries when making the request.
 // Should this be a Call Option?
 func WithRetry(i int) Option {
-	return func(o *Retry) {
+	return func(o *retry) {
 		o.retries = i
 	}
 }
 
 // WithCheck sets the retry function to be used when re-trying.
 func WithCheck(fn CheckFunc) Option {
-	return func(o *Retry) {
+	return func(o *retry) {
 		o.check = fn
 	}
 }
 
-// WithInterval  base time interval  与  Backoff 中的 interval 冲突
+// WithInterval  base time interval
 func WithInterval(interval time.Duration) Option {
-	return func(o *Retry) {
+	return func(o *retry) {
 		o.interval = interval
 	}
 }
 
 // WithDelay 是否延迟执行
 func WithDelay(delay bool) Option {
-	return func(o *Retry) {
+	return func(o *retry) {
 		if delay {
 			o.delay = 1
 		} else {
@@ -51,8 +50,16 @@ func WithDelay(delay bool) Option {
 	}
 }
 
+type Retry interface {
+	Do(fn func() error) error
+}
+
+type Polling interface {
+	Polling(fn func() (bool, error)) (bool, error)
+}
+
 // Retry .
-type Retry struct {
+type retry struct {
 	retries  int // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
 	check    CheckFunc
 	backoff  BackoffFunc
@@ -61,8 +68,8 @@ type Retry struct {
 }
 
 // NewRetry .
-func NewRetry(opts ...Option) *Retry {
-	r := &Retry{
+func NewRetry(opts ...Option) Retry {
+	r := &retry{
 		retries:  3,
 		check:    defaultCheckFunc,
 		backoff:  FibonacciBackoff,      // 默认斐波那契数列间隔
@@ -76,7 +83,7 @@ func NewRetry(opts ...Option) *Retry {
 }
 
 // Do exec fn
-func (r *Retry) Do(fn func() error) error {
+func (r *retry) Do(fn func() error) error {
 	var gerr error
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
@@ -96,7 +103,7 @@ func (r *Retry) Do(fn func() error) error {
 			return nil
 		}
 
-		// cehck retry
+		// check retry
 		retry, cerr := r.check(i, ferr)
 		if cerr != nil {
 			return errors.Wrap(cerr, "retry check error")
@@ -106,21 +113,18 @@ func (r *Retry) Do(fn func() error) error {
 		}
 
 		// merge error
-		if gerr == nil {
-			gerr = ferr
-		} else {
-			gerr = errors.Wrap(gerr, ferr.Error())
-		}
+		gerr = multierror.Append(gerr, ferr)
 	}
 
 	return gerr
 }
 
-// NewPollingRetry .
-func NewPollingRetry(opts ...Option) *Retry {
-	r := &Retry{
+// NewPolling .
+// 与 NewRetry 默认参数不同
+func NewPolling(opts ...Option) Polling {
+	r := &retry{
 		retries:  60, // 默认 60 次轮询, 60 * 10 = 10 分钟
-		check:    defaultPollingCheckFunc,
+		check:    defaultCheckFunc,
 		backoff:  AverageBackOff,   // 平均间隔
 		interval: time.Second * 10, // 默认 10 s 间隔
 		delay:    0,
@@ -132,7 +136,7 @@ func NewPollingRetry(opts ...Option) *Retry {
 }
 
 // 轮询 check 的场景
-func (r *Retry) Polling(fn func() (bool, error)) (bool, error) {
+func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 	var gerr error
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
@@ -155,7 +159,7 @@ func (r *Retry) Polling(fn func() (bool, error)) (bool, error) {
 			continue
 		}
 
-		// cehck retry
+		// check retry
 		retry, cerr := r.check(i, ferr)
 		if cerr != nil {
 			return false, errors.Wrap(cerr, "retry check error")
@@ -165,19 +169,10 @@ func (r *Retry) Polling(fn func() (bool, error)) (bool, error) {
 		}
 
 		// merge error
-		if gerr == nil {
-			gerr = ferr
-		} else {
-			gerr = errors.Wrap(gerr, ferr.Error())
-		}
+		gerr = multierror.Append(gerr, ferr)
 	}
 
-	errt := errors.New("retry timeout")
-	if gerr == nil {
-		gerr = errt
-	} else {
-		gerr = errors.Wrap(gerr, errt.Error())
-	}
+	gerr = multierror.Append(gerr, errors.New("retry timeout"))
 
 	return false, gerr
 }

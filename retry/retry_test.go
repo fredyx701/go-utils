@@ -3,6 +3,7 @@ package retry
 import (
 	"errors"
 	"log"
+	"math"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 func TestRetry(t *testing.T) {
 	now := time.Now()
+	arr := []int64{}
 
 	// fibonacci
 	NewRetry(
@@ -18,43 +20,68 @@ func TestRetry(t *testing.T) {
 		WithInterval(time.Millisecond*10),
 	).Do(func() error {
 		now2 := time.Now()
-		log.Printf("fibonacci ms %v", (now2.UnixNano()-now.UnixNano())/1e6)
+		delta := (now2.UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("fibonacci ms %v", delta)
 		now = now2
+		arr = append(arr, delta/10)
 		return errors.New("testerror")
 	})
+	assert.EqualValues(t, arr, []int64{0, 1, 2, 3, 5, 8})
 
 	now = time.Now()
+	arr = []int64{}
+	count := 0
 
 	// exponent
 	NewRetry(
-		WithBackoff(ExponentialBackoff, time.Millisecond),
+		WithInterval(time.Millisecond),
+		WithBackoff(ExponentialBackoff),
 	).Do(func() error {
-		log.Printf("exponent ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
+		delta := (time.Now().UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("exponent ms %v", delta)
+		arr = append(arr, int64(float64(delta)/math.Pow(10, float64(count)-1))) // 0/0.1, 1+/1,  10+/10, 100+/100
+		count++
 		return errors.New("testerror")
 	})
+	assert.EqualValues(t, arr, []int64{0, 1, 1, 1})
 
 	now = time.Now()
+	arr = []int64{}
 
 	// average
 	NewRetry(
-		WithBackoff(AverageBackOff, time.Millisecond*10),
+		WithInterval(time.Millisecond*10),
+		WithBackoff(AverageBackOff),
 	).Do(func() error {
 		now2 := time.Now()
-		log.Printf("average ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
+		delta := (now2.UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("average ms %v", delta)
 		now = now2
+		arr = append(arr, delta/10)
 		return errors.New("testerror")
 	})
+	assert.EqualValues(t, arr, []int64{0, 1, 1, 1})
+
+	now = time.Now()
+	arr = []int64{}
 
 	// increase
 	err := NewRetry(
-		WithBackoff(IncreaseBackOff, time.Millisecond*10),
+		WithInterval(time.Millisecond*10),
+		WithBackoff(IncreaseBackOff),
 	).Do(func() error {
 		now2 := time.Now()
-		log.Printf("increase ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
+		delta := (now2.UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("increase ms %v", delta)
 		now = now2
+		arr = append(arr, delta/10)
 		return errors.New("testerror")
 	})
 	log.Println(err)
+	assert.EqualValues(t, arr, []int64{0, 1, 2, 3})
+
+	now = time.Now()
+	arr = []int64{}
 
 	// check
 	check := func(retryCount int, err error) (bool, error) {
@@ -65,19 +92,23 @@ func TestRetry(t *testing.T) {
 	}
 	NewRetry(
 		WithCheck(check),
-		WithBackoff(AverageBackOff, time.Millisecond*10),
+		WithInterval(time.Millisecond*10),
+		WithBackoff(AverageBackOff),
 	).Do(func() error {
 		now2 := time.Now()
-		log.Printf("check ms %v", (time.Now().UnixNano()-now.UnixNano())/1e6)
+		delta := (now2.UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("check ms %v", delta)
 		now = now2
+		arr = append(arr, delta/10)
 		return errors.New("testerror")
 	})
+	assert.EqualValues(t, arr, []int64{0, 1})
 }
 
 func TestRetryCheck(t *testing.T) {
 	// success
 	count := 0
-	success, err := NewPollingRetry(
+	success, err := NewPolling(
 		WithRetry(10),
 		WithInterval(time.Millisecond*10),
 	).Polling(func() (bool, error) {
@@ -92,7 +123,7 @@ func TestRetryCheck(t *testing.T) {
 
 	// timeout
 	count = 0
-	success, err = NewPollingRetry(
+	success, err = NewPolling(
 		WithRetry(10),
 		WithInterval(time.Millisecond*10),
 	).Polling(func() (bool, error) {
@@ -104,18 +135,19 @@ func TestRetryCheck(t *testing.T) {
 	assert.Equal(t, err != nil, true)
 	log.Println("get timeout error: ", err)
 
-	// failed
+	// max failed
 	count = 0
-	success, err = NewPollingRetry(
-		WithRetry(10),
+	success, err = NewPolling(
+		WithRetry(2),
 		WithInterval(time.Millisecond*10),
 	).Polling(func() (bool, error) {
 		count++
 		return false, errors.New("testerror")
 	})
 	assert.Equal(t, success, false)
-	assert.Equal(t, count, 1) // 直接失败
+	assert.Equal(t, count, 3) // 失败次数过多
 	assert.Equal(t, err != nil, true)
+	log.Println("get max failed error: ", err)
 
 	// check
 	count = 0
@@ -125,7 +157,7 @@ func TestRetryCheck(t *testing.T) {
 		}
 		return true, nil
 	}
-	success, err = NewPollingRetry(
+	success, err = NewPolling(
 		WithCheck(check),
 		WithRetry(10),
 		WithInterval(time.Millisecond*10),
@@ -146,8 +178,9 @@ func TestRetryCheck(t *testing.T) {
 		}
 		return interval, nil
 	}
-	_, err = NewPollingRetry(
-		WithBackoff(backoff, time.Millisecond*10),
+	_, err = NewPolling(
+		WithInterval(time.Millisecond*10),
+		WithBackoff(backoff),
 		WithRetry(3), // 默认立即执行
 	).Polling(func() (bool, error) {
 		return false, nil
@@ -157,8 +190,9 @@ func TestRetryCheck(t *testing.T) {
 	assert.Equal(t, err != nil, true)
 
 	count = 0
-	_, err = NewPollingRetry(
-		WithBackoff(backoff, time.Millisecond*10),
+	_, err = NewPolling(
+		WithInterval(time.Millisecond*10),
+		WithBackoff(backoff),
 		WithRetry(3),
 		WithDelay(true), // 一个周期后执行
 	).Polling(func() (bool, error) {
