@@ -135,7 +135,7 @@ func TestRetryCheck(t *testing.T) {
 	assert.Equal(t, err != nil, true)
 	log.Println("get timeout error: ", err)
 
-	// max failed
+	// func error
 	count = 0
 	success, err = NewPolling(
 		WithRetry(2),
@@ -145,7 +145,7 @@ func TestRetryCheck(t *testing.T) {
 		return false, errors.New("testerror")
 	})
 	assert.Equal(t, success, false)
-	assert.Equal(t, count, 3) // 失败次数过多
+	assert.Equal(t, count, 1) // func error 一次发生即不再重试
 	assert.Equal(t, err != nil, true)
 	log.Println("get max failed error: ", err)
 

@@ -100,21 +100,23 @@ func (r *retry) Do(fn func() error) error {
 		// exec
 		ferr := fn()
 		if ferr == nil {
-			return nil
+			return nil // no error, continue
 		}
 
-		// check retry
+		// check func retry
 		retry, cerr := r.check(i, ferr)
 		if cerr != nil {
-			return errors.Wrap(cerr, "retry check error")
+			return errors.Wrap(cerr, "retry check func error")
 		}
 		if !retry {
-			return ferr
+			return ferr // reject retry and return func error
 		}
 
-		// merge error
+		// merge func error
 		gerr = multierror.Append(gerr, ferr)
 	}
+
+	gerr = multierror.Append(gerr, errors.New("retry timeout"))
 
 	return gerr
 }
@@ -124,7 +126,7 @@ func (r *retry) Do(fn func() error) error {
 func NewPolling(opts ...Option) Polling {
 	r := &retry{
 		retries:  60, // 默认 60 次轮询, 60 * 10 = 10 分钟
-		check:    defaultCheckFunc,
+		check:    defaultPollingCheckFunc,
 		backoff:  AverageBackOff,   // 平均间隔
 		interval: time.Second * 10, // 默认 10 s 间隔
 		delay:    0,
@@ -156,19 +158,19 @@ func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 			return success, ferr
 		}
 		if ferr == nil {
-			continue
+			continue // no error, continue
 		}
 
-		// check retry
+		// check func error
 		retry, cerr := r.check(i, ferr)
 		if cerr != nil {
-			return false, errors.Wrap(cerr, "retry check error")
+			return false, errors.Wrap(cerr, "retry check func error")
 		}
 		if !retry {
-			return false, ferr
+			return false, ferr // reject retry and return func error
 		}
 
-		// merge error
+		// merge func error
 		gerr = multierror.Append(gerr, ferr)
 	}
 
