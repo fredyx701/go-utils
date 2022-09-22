@@ -39,6 +39,13 @@ func WithInterval(interval time.Duration) Option {
 	}
 }
 
+// WithMaxInterval  max time interval
+func WithMaxInterval(maxInterval time.Duration) Option {
+	return func(o *retry) {
+		o.maxInterval = maxInterval
+	}
+}
+
 // WithDelay 是否延迟执行
 func WithDelay(delay bool) Option {
 	return func(o *retry) {
@@ -60,11 +67,12 @@ type Polling interface {
 
 // Retry .
 type retry struct {
-	retries  int // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
-	check    CheckFunc
-	backoff  BackoffFunc
-	interval time.Duration
-	delay    int // 是否延迟执行;  0 立即执行  1 一个周期后执行.   默认立即执行
+	retries     int           // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
+	check       CheckFunc     // 错误检查策略
+	backoff     BackoffFunc   // 重试间隔策略
+	interval    time.Duration // base interval
+	maxInterval time.Duration // 最大重试间隔
+	delay       int           // 是否延迟执行;  0 立即执行  1 一个周期后执行.   默认立即执行
 }
 
 // NewRetry .
@@ -93,8 +101,12 @@ func (r *retry) Do(fn func() error) error {
 		}
 
 		// 0 duration not sleep
-		if t.Seconds() > 0 {
-			time.Sleep(t)
+		if t > 0 {
+			if r.maxInterval > 0 && r.maxInterval < t { // 判断最大超时时间
+				time.Sleep(r.maxInterval)
+			} else {
+				time.Sleep(t)
+			}
 		}
 
 		// exec
@@ -148,8 +160,12 @@ func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 		}
 
 		// 0 duration not sleep
-		if t.Seconds() > 0 {
-			time.Sleep(t)
+		if t > 0 {
+			if r.maxInterval > 0 && r.maxInterval < t { // 判断最大超时时间
+				time.Sleep(r.maxInterval)
+			} else {
+				time.Sleep(t)
+			}
 		}
 
 		// exec

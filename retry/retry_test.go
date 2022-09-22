@@ -103,6 +103,26 @@ func TestRetry(t *testing.T) {
 		return errors.New("testerror")
 	})
 	assert.EqualValues(t, arr, []int64{0, 1})
+
+	now = time.Now()
+	arr = []int64{}
+
+	// max interval
+	err = NewRetry(
+		WithRetry(5),
+		WithMaxInterval(time.Millisecond*30),
+		WithInterval(time.Millisecond*10),
+		WithBackoff(IncreaseBackOff),
+	).Do(func() error {
+		now2 := time.Now()
+		delta := (now2.UnixNano() - now.UnixNano()) / 1e6
+		log.Printf("increase ms %v", delta)
+		now = now2
+		arr = append(arr, delta/10)
+		return errors.New("testerror")
+	})
+	log.Println(err)
+	assert.EqualValues(t, arr, []int64{0, 1, 2, 3, 3, 3}) // 最后 2 次，触发 maxInterval
 }
 
 func TestRetryCheck(t *testing.T) {
