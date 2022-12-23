@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -46,6 +47,20 @@ func WithMaxInterval(maxInterval time.Duration) Option {
 	}
 }
 
+// WithExpiredDuration  expired duration
+func WithExpiredDuration(expiredDuration time.Duration) Option {
+	return func(o *retry) {
+		o.expiredDuration = expiredDuration
+	}
+}
+
+// WithLogMode 是否输出错误日志
+func WithLogMode(logMode bool) Option {
+	return func(o *retry) {
+		o.logMode = logMode
+	}
+}
+
 // WithDelay 是否延迟执行
 func WithDelay(delay bool) Option {
 	return func(o *retry) {
@@ -67,22 +82,26 @@ type Polling interface {
 
 // Retry .
 type retry struct {
-	retries     int           // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
-	check       CheckFunc     // 错误检查策略
-	backoff     BackoffFunc   // 重试间隔策略
-	interval    time.Duration // base interval
-	maxInterval time.Duration // 最大重试间隔
-	delay       int           // 是否延迟执行;  0 立即执行  1 一个周期后执行.   默认立即执行
+	retries         int           // 重试次数，不包含首次执行。 总执行次数 = 1 + retry
+	check           CheckFunc     // 错误检查策略
+	backoff         BackoffFunc   // 重试间隔策略
+	interval        time.Duration // base interval
+	maxInterval     time.Duration // 最大重试间隔
+	expiredDuration time.Duration // 最大重试持续时间
+	delay           int           // 是否延迟执行;  0 立即执行  1 一个周期后执行.   默认立即执行
+	logMode         bool          // 是否输出错误日志
 }
 
 // NewRetry .
 func NewRetry(opts ...Option) Retry {
 	r := &retry{
-		retries:  3,
-		check:    defaultCheckFunc,
-		backoff:  FibonacciBackoff,      // 默认斐波那契数列间隔
-		interval: time.Millisecond * 10, // 默认 10ms 间隔
-		delay:    0,
+		retries:         3,
+		check:           defaultCheckFunc,
+		backoff:         FibonacciBackoff,      // 默认斐波那契数列间隔
+		interval:        time.Millisecond * 10, // 默认 10ms 间隔
+		expiredDuration: 0,                     // 默认不设置最大重试持续时间
+		delay:           0,
+		logMode:         true, // 默认输出错误日志
 	}
 	for _, o := range opts {
 		o(r)
@@ -93,6 +112,7 @@ func NewRetry(opts ...Option) Retry {
 // Do exec fn
 func (r *retry) Do(fn func() error) error {
 	var gerr error
+	startAt := time.Now()
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
 		t, berr := r.backoff(i+r.delay, r.interval)
@@ -124,8 +144,21 @@ func (r *retry) Do(fn func() error) error {
 			return ferr // reject retry and return func error
 		}
 
-		// merge func error
-		gerr = multierror.Append(gerr, ferr)
+		// 判断最大重试持续时间
+		// 超时则退出     start_at + expired_duration < now
+		if r.expiredDuration > 0 && startAt.Add(r.expiredDuration).Before(time.Now()) {
+			gerr = multierror.Append(gerr, ferr)
+			break
+		}
+
+		if r.logMode {
+			log.Printf("exec retry do with error: %v", ferr)
+		}
+
+		// merge func error. 最多包装 30 个 error
+		if i <= 30 {
+			gerr = multierror.Append(gerr, ferr)
+		}
 	}
 
 	gerr = multierror.Append(gerr, errors.New("retry timeout"))
@@ -137,11 +170,13 @@ func (r *retry) Do(fn func() error) error {
 // 与 NewRetry 默认参数不同
 func NewPolling(opts ...Option) Polling {
 	r := &retry{
-		retries:  60, // 默认 60 次轮询, 60 * 10 = 10 分钟
-		check:    defaultPollingCheckFunc,
-		backoff:  AverageBackOff,   // 平均间隔
-		interval: time.Second * 10, // 默认 10 s 间隔
-		delay:    0,
+		retries:         60, // 默认 60 次轮询, 60 * 10 = 10 分钟
+		check:           defaultPollingCheckFunc,
+		backoff:         AverageBackOff,   // 平均间隔
+		interval:        time.Second * 10, // 默认 10 s 间隔
+		expiredDuration: 0,                // 默认不设置最大重试持续时间
+		delay:           0,
+		logMode:         true, // 默认输出错误日志
 	}
 	for _, o := range opts {
 		o(r)
@@ -152,6 +187,7 @@ func NewPolling(opts ...Option) Polling {
 // 轮询 check 的场景
 func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 	var gerr error
+	startAt := time.Now()
 	for i := 0; i <= r.retries; i++ {
 		// call backoff first. Someone may want an initial start delay
 		t, berr := r.backoff(i+r.delay, r.interval)
@@ -186,8 +222,21 @@ func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 			return false, ferr // reject retry and return func error
 		}
 
-		// merge func error
-		gerr = multierror.Append(gerr, ferr)
+		// 判断最大重试持续时间
+		// 超时则退出     start_at + expired_duration < now
+		if r.expiredDuration > 0 && startAt.Add(r.expiredDuration).Before(time.Now()) {
+			gerr = multierror.Append(gerr, ferr)
+			break
+		}
+
+		if r.logMode {
+			log.Printf("exec retry polling with error: %v", ferr)
+		}
+
+		// merge func error. 最多包装 30 个 error
+		if i <= 30 {
+			gerr = multierror.Append(gerr, ferr)
+		}
 	}
 
 	gerr = multierror.Append(gerr, errors.New("retry timeout"))
