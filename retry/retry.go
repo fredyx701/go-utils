@@ -145,8 +145,8 @@ func (r *retry) Do(fn func() error) error {
 		}
 
 		// 判断最大重试持续时间
-		// 超时则退出     start_at + expired_duration < now
-		if r.expiredDuration > 0 && startAt.Add(r.expiredDuration).Before(time.Now()) {
+		// 超时则退出     now - start_at > expired_duration
+		if r.expiredDuration > 0 && time.Since(startAt) > r.expiredDuration {
 			gerr = multierror.Append(gerr, ferr)
 			break
 		}
@@ -223,8 +223,8 @@ func (r *retry) Polling(fn func() (bool, error)) (bool, error) {
 		}
 
 		// 判断最大重试持续时间
-		// 超时则退出     start_at + expired_duration < now
-		if r.expiredDuration > 0 && startAt.Add(r.expiredDuration).Before(time.Now()) {
+		// 超时则退出     now - start_at > expired_duration
+		if r.expiredDuration > 0 && time.Since(startAt) > r.expiredDuration {
 			gerr = multierror.Append(gerr, ferr)
 			break
 		}
