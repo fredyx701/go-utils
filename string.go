@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//Rand custom rand
+// Rand custom rand
 var Rand *rand.Rand
 
 func init() {
